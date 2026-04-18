@@ -1,9 +1,404 @@
 <!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ライブ配信用語集 (管理ツール)</title>
+<style>
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; margin: 0; background-color: #f4f6f9; color: #333; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    #top-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f4f6f9; z-index: 5000; width: 100%; overflow-y: auto; padding: 40px 0; }
+    .top-title { font-size: 24px; color: #111; margin-bottom: 20px; font-weight: bold; }
+    .mode-toggle { display: flex; background: #e0e0e0; border-radius: 30px; overflow: hidden; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+    .mode-btn { padding: 10px 24px; font-size: 15px; font-weight: bold; color: #555; border: none; background: transparent; cursor: pointer; transition: all 0.2s; }
+    .mode-btn.active { background: #111; color: #fff; }
+    .app-select-btn { width: 80%; max-width: 300px; padding: 16px; margin-bottom: 12px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s; flex-shrink: 0; }
+    .app-select-btn:active { transform: scale(0.96); }
+    .btn-tiktok { background: #111111; color: #ffffff; }
+    .btn-pococha { background: #00AEEF; color: #ffffff; }
+    .btn-everylive { background: #ff0080; color: #ffffff; }
+    .btn-17live { background: #ff0000; color: #ffffff; }
+    .action-btn { display: none; width: 80%; max-width: 300px; padding: 14px; margin-top: 10px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+    .action-btn:active { transform: scale(0.98); }
+    #top-add-btn { margin-top: 20px; border: 2px dashed #888; background: transparent; color: #555; }
+    #top-add-btn:hover { background: #e9ecef; }
+    #backup-btn { border: none; background: #007bff; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    #download-btn { border: none; background: #24292e; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    #app-wrapper { display: none; flex-direction: column; height: 100vh; width: 100%; }
+    .app-header { display: flex; align-items: center; background: #ffffff; border-bottom: 1px solid #e0e0e0; padding: 10px 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1000; }
+    .header-btn { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 2px solid #ddd; color: #555; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; margin-right: 10px; }
+    .header-title { margin: 0; font-size: 16px; color: #111; font-weight: bold; }
+    .header-spacer { flex-grow: 1; }
+    .header-add-btn { display: none; background: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .layout-container { display: flex; flex-grow: 1; position: relative; overflow: hidden; }
+    .sidebar { width: 260px; min-width: 260px; background: #ffffff; border-right: 1px solid #e0e0e0; padding: 20px; box-sizing: border-box; overflow-y: auto; transition: margin-left 0.3s ease, transform 0.3s ease; z-index: 100; }
+    .sidebar.is-hidden { margin-left: -260px; }
+    #kana-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kana-btn { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 0; font-size: 16px; font-weight: bold; text-align: center; cursor: pointer; }
+    .wide-btn { grid-column: span 2; font-size: 14px; padding: 10px 0; }
+    .main-content { flex-grow: 1; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    #terms-container { max-width: 600px; margin: 0 auto; }
+    .row-title { font-size: 20px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 8px; display: none; }
+    .term-item { background: #ffffff; padding: 16px 20px; margin-bottom: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #aaa; display: flex; justify-content: space-between; align-items: center; }
+    .edit-controls { display: flex; gap: 8px; align-items: center; }
+    .move-btn { background: #e0e0e0; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #555; font-size: 12px; font-weight: bold; transition: background 0.2s; }
+    .move-btn:hover { background: #ccc; }
+    .edit-icon { color: #888; font-size: 18px; margin-left: 5px; }
+    .empty-message { color: #777; text-align: center; margin-top: 20px; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-content { background: #fff; width: 90%; max-width: 450px; border-radius: 12px; padding: 24px; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; }
+    #view-modal-title { margin: 0 0 15px 0; font-size: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .desc-label { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; }
+    .desc-text { font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 15px;}
+    .example-text { font-size: 14px; color: #555; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ccc; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #555; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; font-family: inherit; }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+    .btn-save { background: #111; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-delete { background: #ff4d4d; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; }
+    .close-btn { width: 100%; padding: 12px; margin-top: 15px; background: #eee; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    #sidebar-overlay { display: none; }
+    @media (max-width: 768px) {
+        .sidebar { position: absolute; top: 0; left: 0; height: 100%; margin-left: 0; transform: translateX(0); box-shadow: 2px 0 15px rgba(0,0,0,0.15); }
+        .sidebar.is-hidden { transform: translateX(-100%); }
+        #sidebar-overlay.show { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
+    }
+</style>
+</head>
+<body>
+<div id="top-screen">
+    <div class="top-title">ライブ配信用語集</div>
+    <div class="mode-toggle">
+        <button id="mode-view" class="mode-btn active" onclick="switchMode('view')">閲覧モード</button>
+        <button id="mode-edit" class="mode-btn" onclick="switchMode('edit')">編集モード</button>
+    </div>
+    <button class="app-select-btn btn-tiktok" onclick="openApp('tiktok', 'TikTok')">TikTok 用語集</button>
+    <button class="app-select-btn btn-pococha" onclick="openApp('pococha', 'Pococha')">Pococha 用語集</button>
+    <button class="app-select-btn btn-everylive" onclick="openApp('everylive', 'Every Live')">Every Live 用語集</button>
+    <button class="app-select-btn btn-17live" onclick="openApp('17live', '17LIVE')">17LIVE 用語集</button>
+    <button id="top-add-btn" class="action-btn" onclick="openEditModal(null)">＋ 新規用語を登録</button>
+    <button id="backup-btn" class="action-btn" onclick="downloadAdminBackup()">💾 この管理ツール自体を保存 (admin.html)</button>
+    <button id="download-btn" class="action-btn" onclick="downloadForGitHub()">⬇ GitHub用にダウンロード (index.html)</button>
+</div>
+<div id="app-wrapper">
+    <header class="app-header">
+        <button class="header-btn" onclick="goToTop()">◀ 戻る</button>
+        <button class="header-btn menu-btn" onclick="toggleSidebar()" id="menu-btn">☰ メニュー</button>
+        <h1 class="header-title" id="app-header-title">用語集</h1>
+        <div class="header-spacer"></div>
+        <button id="header-add-btn" class="header-add-btn" onclick="openEditModal(null)">＋ 追加</button>
+    </header>
+    <div class="layout-container">
+        <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
+            <div id="kana-grid">
+                <div class="kana-btn" onclick="showTerms('あ行')">あ</div><div class="kana-btn" onclick="showTerms('か行')">か</div>
+                <div class="kana-btn" onclick="showTerms('さ行')">さ</div><div class="kana-btn" onclick="showTerms('た行')">た</div>
+                <div class="kana-btn" onclick="showTerms('な行')">な</div><div class="kana-btn" onclick="showTerms('は行')">は</div>
+                <div class="kana-btn" onclick="showTerms('ま行')">ま</div><div class="kana-btn" onclick="showTerms('や行')">や</div>
+                <div class="kana-btn" onclick="showTerms('ら行')">ら</div><div class="kana-btn" onclick="showTerms('わ行')">わ</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('英字')">英字</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('数字')">数字</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('絵文字')">絵文字</div>
+            </div>
+        </aside>
+        <main class="main-content" id="main-content">
+            <div id="terms-container">
+                <div id="row-title" class="row-title"></div>
+                <div id="terms-list"><div class="empty-message">メニューから行を選択してください</div></div>
+            </div>
+        </main>
+    </div>
+</div>
+<div id="view-modal" class="modal-overlay" onclick="closeModal(event, 'view-modal')"><div class="modal-content"><h2 id="view-modal-title"></h2><span class="desc-label" id="view-desc-label">【意味】</span><div id="view-modal-desc" class="desc-text"></div><div id="view-modal-example-section"><span class="desc-label" id="view-example-label">【使用例】</span><div id="view-modal-example" class="example-text"></div></div><button class="close-btn" onclick="closeModal(event, 'view-modal', true)">閉じる</button></div></div>
+<div id="edit-modal" class="modal-overlay" onclick="closeModal(event, 'edit-modal')"><div class="modal-content"><h2 id="edit-modal-title"></h2><input type="hidden" id="edit-index"><div class="form-group"><label>対象アプリ</label><select id="edit-app" class="form-control"><option value="tiktok">TikTok</option><option value="pococha">Pococha</option><option value="everylive">Every Live</option><option value="17live">17LIVE</option></select></div><div class="form-group"><label>カテゴリ（行）</label><select id="edit-row" class="form-control"><option value="あ行">あ行</option><option value="か行">か行</option><option value="さ行">さ行</option><option value="た行">た行</option><option value="な行">な行</option><option value="は行">は行</option><option value="ま行">ま行</option><option value="や行">や行</option><option value="ら行">ら行</option><option value="わ行">わ行</option><option value="英字">英字</option><option value="数字">数字</option><option value="絵文字">絵文字</option></select></div><div class="form-group"><label>用語名</label><input type="text" id="edit-term" class="form-control"></div><div class="form-group"><label>意味</label><textarea id="edit-desc" class="form-control"></textarea></div><div class="form-group"><label>使用例（任意）</label><textarea id="edit-example" class="form-control"></textarea></div><button class="btn-save" onclick="saveTerm()">保存する</button><button id="edit-delete-btn" class="btn-delete" onclick="deleteTerm()">削除</button><button class="close-btn" onclick="closeModal(event, 'edit-modal', true)">キャンセル</button></div></div>
+<script>
+    let currentMode = 'view'; let currentAppMode = 'tiktok'; let currentRow = ''; let glossaryData = {};
+    const initialData = {"tiktok":{"あ行":[{"term":"アイテム","desc":"コラボバトルで使うもの。それぞれのアイテムは、バトルで優位に立てる効果を持つ。バトルで勝利した時に貢献度が高いリスナーにランダムに支給される。","example":"上位3人、アイテムゲットだね！"},{"term":"アカウント または 垢","desc":"TikTokなどのサービスやプラットフォームを利用するために必要なもので、ユーザーを識別する役割を持つ。","example":"TikTok面白そうだから、アカウント作ろうかな。"},{"term":"いいね","desc":"配信中に画面をタップすると「いいね」として数字が計上されていく。1アカウントで1時間に3000回までタップできる。","example":"画面タップで応援よろしくお願いします！"},{"term":"いつメン","desc":"配信に参加率の高いメンバーのこと。いつものメンバーの略。","example":"今日はいつメンが少ないね。"},{"term":"運営","desc":"TikTok本社（プラットフォーム）を示す言葉。トラブルなどがあった時に報告をする。","example":"この不具合は運営さんに報告した方が良いね。"},{"term":"エモート","desc":"サブスクに入っている人がコメントで使える特別な画像コメントのこと。","example":"新しいエモート追加したよ！"},{"term":"推し","desc":"特に気に入って応援しているライバーのこと。推しへの熱量に応じて「単推し」や「激推し」と表現されることがあるが、複数のライバーを推しているリスナーも少なくない。","example":"僕の推しさんは◯◯です。"},{"term":"オプチャ","desc":"LINEのオープンチャットのこと。配信の告知、連絡などに活用されることが多い。","example":"サブスクメンバー、オプチャに入ってね！"},{"term":"お花摘み","desc":"主に女性ライバーが配信中にトイレに行く時に使う隠語。","example":"ちょっとお花摘みに行ってくるね。"},{"term":"お楽しみ袋","desc":"ライバーが設定できる機能で、抽選によってリスナーにコインをプレゼントできる。\n条件を設定して、対象のリスナーを限定することも可能。","example":"お楽しみ袋置くねー。"}],"か行":[{"term":"ガチバトル（予約バトル）","desc":"ライバー同士があらかじめ日時を設定し、事前告知した上で体制を作って行うバトルのこと。","example":"いよいよ明日は◯◯とのガチバトルだね。"},{"term":"ガチ日","desc":"ライバーが特別な日に設定し、長時間配信やコラボなどを交え、日間ランキングまたは人気ランキング上位を狙うイベント。誕生日や周年記念などで設定されることが多い。","example":"来月のガチ日はぜひ応援してね！"},{"term":"ギフト","desc":"リスナーからライバーに贈るもの。金額の小さいものから大きいものまであり、ライバーの報酬に繋がる。","example":"このライバーさんの配信楽しいから、大きめのギフト贈っちゃおうかな。"},{"term":"ギフトギャラリー（ギフギャラ）","desc":"配信者ごとに設定されている指定ギフトの一覧のこと。毎週月曜日の0時にリセットされる。ギフトギャラリー内のギフトを指定数分贈ると、ギフトが点灯する仕組み。","example":"ギフギャラ、残りひとつになったね！"},{"term":"ギフリア（ギフトリアクション）","desc":"ライバーさんがギフトを贈ってもらった時に反応するリアクションのこと。ギフト毎にリアクションを分けているライバーが多い。","example":"そのギフリア面白いw"},{"term":"ギフレベ （ギフトレベル）","desc":"すべてのライブ配信に対して贈ったギフトの総合計によって決まるランク。ギフレベは1から50まで存在する。","example":"◯◯さん、ギフレベ45ってすごいですね！"},{"term":"グローブ","desc":"アイテムの一種。バトル中に使用すると、約30%の確率でギフトのコイン数が5倍で計上される効果がある。効果は30秒間持続する。","example":"残り時間30秒でグローブ投入します！"},{"term":"ゲリラ配信","desc":"事前に予告していない時間に急に配信すること。","example":"急に時間できたのでゲリラ配信してみた。"},{"term":"コイン","desc":"ギフトを購入するためのTikTok内で利用できる通貨。アプリから直接購入するか、ブラウザでサイトから購入することもできる。","example":"コインがなくなったからチャージしないと！"},{"term":"貢献","desc":"バトルやイベントでより多くのポイント、ギフトを贈ったリスナーに対して使われる表現","example":"今回の貢献1位は◯◯さんでしたー！"},{"term":"小窓","desc":"配信中にゲストとして参加すること。画面内に小さなスペースができてその部分に参加することから小窓と呼ばれている。","example":"モデさん、小窓上がって！"},{"term":"コメBAN","desc":"コメントがTikTokのAI判定で消されてしまうこと。配信者や他のリスナーには見えていない状態になる。","example":"さっきコメントしたんだけど、コメBANだったのかなー。"},{"term":"コメント（コメ）","desc":"配信中にリスナーが文字を打ち込んで送信するもの。コメントが多いと配信が盛り上げる。","example":"初見さんもどんどんコメントしてね！"},{"term":"コラボ","desc":"配信中にライバーと別のライバーがコラボレーションすること。画面が分割されて、同じ画面で複数人が登場し、会話やバトルをすることができる。","example":"コラボありがとうございます。"}],"さ行":[{"term":"サブアカ または サブ垢","desc":"メインで使っているアカウントとは別に作成したサブアカウントのこと。サブ垢や兄弟垢とも呼ばれる。また、サブ垢に対してメインのアカウントを本垢と呼ぶこともある。","example":"あのライバーさん、今イベントやってるからサブ垢でも応援に行こうかな。"},{"term":"差し込み","desc":"コラボバトルで終了間際にギフトを贈ること。それまで劣勢でも差し込みで大逆転することもある。","example":"◯◯さん、ナイス差し込み！"},{"term":"サブスク","desc":"固定のライバーさんを応援するために月額固定料金を支払って、限定特典を受けるもの。サブスク限定配信に参加できたり、そのライバーさん専用のエモートが使えたりするなどの特典がある。","example":"サブスク入会ありがとうございます。"},{"term":"サブスク限定（サブ限）","desc":"サブスクメンバーのみが利用できる機能やコンテンツ。\n• サブスク限定動画：サブスクメンバーだけが視聴できる動画。\n• サブスク限定配信：メンバー以外はプレビューのみ視聴可能な配信。\n• サブスク限定コメント：サブスクメンバーだけがコメントできる機能。","example":"来週はサブスク限定配信やるね"},{"term":"シェア","desc":"ライブ配信中であることを、配信外の人に共有するための機能。SNS、メッセージアプリ、メールなど、さまざまなツールと連携して使用できる。","example":"シェアありがとうございます！"},{"term":"素手","desc":"コラボバトルでアイテムを使わずにバトルすること。","example":"アイテム誰も持っていないのでここは素手で行こう！"},{"term":"スピードチャレンジ","desc":"コラボバトル中にランダムで発生するチャレンジ。チャレンジの目標を達成すると一定時間ギフトのコイン数が2〜3倍で計上される。スピチャレ、スピチャと略す場合が多い。","example":"今回はスピチャレなかったねー。"},{"term":"初見","desc":"初めてその配信を見る人のこと。","example":"初見です、よろしくお願いします"},{"term":"スラる","desc":"画面を間違えてスライドしてしまい、意図に反して他の配信に入ってしまうこと。","example":"スラって海外のライバーさんの配信に入っちゃった"}],"た行":[{"term":"盾イベ","desc":"TikTok LIVEの代表的なイベントのひとつ。正式名称はLIVE Rankingだが、上位入賞者に盾が贈呈されることから盾イベと呼ばれている。ギフト部門と投票部門が存在し、ここに入賞するとトップライバーとして認識されるようになる。","example":"来月の盾イベ、参加しようか。"},{"term":"宝箱","desc":"ライバー、リスナーともに置くことができるもので、抽選でコインをプレゼントするもの。リスナーが少ない時、集めたい時に活用されることが多い。","example":"宝箱ありがとうございます！"},{"term":"チーム","desc":"ハートミーというギフトを初めて送信すると、そのライバーのチームの一員となる。","example":"チームのメンバー大募集中！"},{"term":"定期","desc":"リスナーが定期的に書き込むコメントのこと。配信上の注意事項やイベントの告知などを案内することが多く、主にはモデレーターが書き込む。","example":"◯◯さん、定期ありがとう"},{"term":"殿堂ランキング","desc":"いずれかの曜日に日間ランキングの10位以内に入ったLIVEクリエイターの1週間の合計で計算されるランキング。","example":"あのランカーさん、今週もまた殿堂の1位だね！"},{"term":"同接（同時接続者数）","desc":"その配信にリアルタイムで参加している人数のこと。画面右上で数字で確認することができる。","example":"今同接多いね！"},{"term":"凸る","desc":"事前のやりとりがない状態で、配信中にライバーが他のライバーへコラボ申請を送る行為。「突撃する」という言葉が由来で、主にコラボバトルを申し込む際に使われる。","example":"誰か凸ってみようかな"}],"な行":[{"term":"ナイギフ","desc":"リスナーがギフトを贈った時にそれを褒める言葉、ナイスギフトの略。","example":"ライオン（ギフト名）、ナイギフー！！！"},{"term":"投げる","desc":"「ギフトを投げる」を略して単に「投げる」と表現される","example":"明日は誕生日だからたくさん投げるよ！"},{"term":"投げ師","desc":"高額ギフトを頻繁に送るリスナーのことを指す。自ずとギフレベは高い。","example":"投げ師さんが私の枠に来てくれた。"},{"term":"日間ランキング","desc":"1日単位でギフトの総コイン数で計算されるランキング。","example":"来月のガチ日は日間上位狙いたいね。"},{"term":"人気ランキング","desc":"1日単位でハートミー、視聴時間、ギフト数などのポイント数で計算されるランキング。","example":"月に1度は人気ランキング入りしたいね。"}],"は行":[{"term":"配信枠 または 枠","desc":"ライバーが配信しているルームのこと。配信自体を指す。","example":"コメントやギフトで枠を盛り上げよう！"},{"term":"ハートミー","desc":"1日1回しか送れない特別なチームギフト。初めて贈った時はチームに加入することを意味し、それ以降はチームメンバーであることを意味する。","example":"新規メンバー、ハートミー集めてます！"},{"term":"バトル","desc":"配信中のコラボにおいて、コラボ相手と行うもの。リスナーさんから送られた「いいね」、「ギフト」、「アイテムの効果」によるポイントで勝敗が決まる。","example":"バトル行ってもいい？"},{"term":"ハンマー","desc":"アイテムのひとつ。バトル中に投入し5コイン以上のギフトを贈ると、バトル相手の画面上にハンマーが飛んでいくエフェクトが出現する。30秒間有効。相手のグローブの威力を弱めるという説もある。","example":"ハンマー持っている人はいつでも出して大丈夫だよ！"},{"term":"ピン留め","desc":"配信中のコメントで注目すべきものがあった場合に一定時間固定表示されるコメントのこと。主には配信者、モデレーターが活用している。","example":"ピン留めお願いします！"},{"term":"フォロー","desc":"自分が気に入った配信者や動画クリエイターをフォローすると、フォローリストに入るので配信状況や新作のアップロード状況が把握しやすくなる。","example":"ここの配信楽しいからフォローしますね！"},{"term":"フォローバック（フォロバ）","desc":"フォローされた人がフォローし返す行為。これが成立すると相互フォローの状態になる。","example":"フォロバしておきました！"},{"term":"ブロック","desc":"特定のライバーに対して、視聴、コメントなどを制限すること。アカウントに対してブロックするとそれ以降お互いのやり取りが一切できなくなる。","example":"変なコメントしてたあのリスナー、ブロックされてたね。"},{"term":"ポータル","desc":"他の配信に宣伝として送信される宝箱。その宝箱をタップするとポータル元の配信へと移動し、抽選でコインを得られる権利が発生する。","example":"ポータルありがとうございます！"},{"term":"ボーナスタイム（時間延長）","desc":"アイテムのひとつ。本来のバトル時間に+10秒延長することができる。1回のバトルで最大3回使うことができる。","example":"ボーナスタイム投入します！"}],"ま行":[{"term":"マイイベ","desc":"ライバーが自分で企画するイベントのこと。","example":"夏なので花火のギフトを集めるマイイベを開催します！"},{"term":"ミスト","desc":"アイテムの一種。バトル中に使用すると、相手側から自分たちのスコアが見えなくなる効果を持つ。効果は30秒間持続する。","example":"残り時間30秒でミスト投入します！"},{"term":"ミュート","desc":"①コラボ中に相手の音声を消すこと。\n②リスナーに対してブロックはしないがコメントをしないように強制すること。","example":"お互いミュートで貢献者を読み上げましょう！"},{"term":"メンション","desc":"配信中のコメントで、特定のリスナーに対して送るメッセージ。@+名前、で送信できる。","example":"わざわざメンションありがとうございます！"},{"term":"メンレベ","desc":"チームメンバーのレベルのことで、メンバーレベルの略。ギフト贈呈数、視聴時間、コメントなどいくつかの要素に基づいて、レベルが上がる仕組み。","example":"メンレベアップ、ナイスー！"},{"term":"潜り","desc":"リスナーとして配信に参加しているがコメントやギフトでの参加はしていない状態のこと。","example":"ご飯食べながら見るので潜ります！"},{"term":"モデレーター（モデ）","desc":"ライバーをサポートする役割を担い、ライバーが直接指定することで任命される。主な業務は、コラボに関する挨拶、おかしなコメントのミュートやブロック、安定した配信をサポートするための定期コメント送信、他枠との交流など、多岐にわたる。","example":"◯◯さんが△△枠のモデになったんだね！"}],"や行":[{"term":"闇投げ","desc":"配信中にライバーがトイレなどで離席している間に、リスナーがギフトを投げること。通常は少額のギフトが多いが、大きなギフトが贈られるとライバーが驚くこともある。","example":"また闇投げしたの！？"}],"ら行":[{"term":"ライバー（配信者）","desc":"ライブ配信をしている人のこと。","example":"あのライバーさんの配信楽しいね。"},{"term":"ラグい","desc":"通信や端末の影響により、画面が正常に映らなかったり、音声が止まったり遅れたりすること。英語のLagから来ている。","example":"ラグいから一回入り直してみた。"},{"term":"ラジオ配信","desc":"カメラを使わずに壁紙や写真などを映しながら声だけで配信すること。","example":"今日はすっぴんだからラジオ配信にするね。"},{"term":"ランオフ","desc":"ランキングオフの略。ランオフにすると他の人からレベルが見えないようになる。メンレベ、ギフレベ、共にランオフすることができる。","example":"◯◯さん、ランオフになっているよー。"},{"term":"ランカー","desc":"常にランキング上位に入っているライバーのこと。","example":"昨日ランカーさんのバトル見たけどギフトすごかったよ。"},{"term":"リスナー","desc":"ライブ配信を視聴している人のこと。視聴者を指す。","example":"あのリスナーさんのコメント面白いよね"}],"わ行":[{"term":"枠投げ","desc":"バトル以外の通常配信時に投げること。","example":"枠投げは特に嬉しいよね！"}],"英字":[{"term":"ASMR","desc":"ものを食べるときの咀嚼音を中心とし、人間が気持ちが良いと感じる音を扱った配信や動画。","example":"今度ASMR配信するね。"},{"term":"BAN","desc":"禁止行為などが原因で、配信やアカウントが停止されてしまうこと。","example":"あのライバーさん、BANになってたよ。"},{"term":"Fandom Championship","desc":"TikTok LIVEの代表的なイベントのひとつ。上位入賞者にはライバーの名前が入った景品が送られる。2ヶ月毎に盾イベと交互に開催される。「ファンダム」と略される。","example":"ファンダム終盤だから日間ランキング荒れてるね。"}],"数字":[{"term":"0差し","desc":"コラボバトルで終了0秒でギフトを贈って逆転を狙うこと。","example":"◯◯さん、ナイス0差し！"},{"term":"4コラ","desc":"コラボは複数人でやることができるため、「人数+コラ」で表現される。4コラであれば4人のコラボのこと。","example":"4コラやりませんか？"}],"絵文字":[{"term":"?（BANの隠語）","desc":"「BAN」というワードそのものがネガディブなため、代わりに使う絵文字。","example":"あのライバーさん、?になってたよ。"},{"term":"?（ブロックの隠語）","desc":"「ブロック」というワードそのものがネガティブなため、代わりに使う絵文字","example":"変なコメントしてたあのリスナーさん、?されてたね。"}]},"pococha":{"あ行":[{"term":"アイテム","desc":"視聴中のリスナーが配信者に対してにコインを消費して使用できるものです。（一般的に「投げ銭」と言われているもの）\nアイテムを使用することで、配信・視聴中の画面にさまざまなエフェクトを発生させることができ、配信を盛り上げることができます。\nアイテムに応じて使ったリスナーともらったライバーは、それぞれ経験値を獲得することができます。経験値が一定以上になるとレベルが上がります。","example":""},{"term":"アイテムリアクション","desc":"ライバーがアイテムを投げて貰った際に行うリアクションです。\n例えば、ハートを送ってもらったら指ハートの形を作ったりするなどそれぞれのアイテムにあったリアクションをすることが一般的です。\n特にどういったリアクションをしなければいけないと決まっているわけではなく、多くのライバーさんは個性を出すために独自のアイテムリアクションを考えています。\nこのアイテムリアクションを楽しみにアイテムを投げてくれるリスナーの方は多いです。","example":""},{"term":"アシスタント","desc":"ファミリー開設者が任命したサポート役・管理者のこと。一つのファミリーで最大で5人まで任命する事ができます。\nアシスタントに就任すると、ファミリー開設者の枠で快適で楽しい配信を実現するための、以下の機能が使えるようになります。\n\n【アシスタントの機能】\n・コメントに「エフェクト」がつきます。\n・ファミリーの開設者の代わりにコメント禁止、代理ブロック機能を使えます。\n・ファミリーの開設者の代わりに、ファミリーへの招待、承認・見送り、脱退を行えます。","example":""},{"term":"アシマ","desc":"アシスタントに就任した人に付く「+」マークのこと。アシスタントマークの略称。","example":""},{"term":"アーカイブ","desc":"ライバーが配信した映像が録画となって残る機能のこと。\nアーカイブはプロフィールより確認し視聴することができます。アーカイブの保存期間が【配信から90日間】となります。\nアーカイブにはコメントやアイテムのエフェクトは表示されません。また、ラジオ配信もアーカイブには残りません。","example":""},{"term":"いいね","desc":"ライブ配信画面でリスナーが画面をタップすることで発生するハートエフェクトのこと。\nタップするほどハートマークが画面上に浮かび、長押しすると自動で「いいね」をし続けることができます。\n「いいね」がたくさんあると、雷マークの【注目度】が上がりポコチャのホーム画面において上位に表示されやすくなります。そのため、いいねが多い配信は新規リスナーを呼び込みやすくなります。\nまたいいねが多いと盛り上がり度があがり、ライバーの報酬にも繋がります。","example":""},{"term":"応援ポイント","desc":"配信に対するその日の応援活動によって決まるポイントです。\n応援ポイントは各種ランキングやメーターの増減、盛り上がりダイヤに関係する重要な指標であり、アイテムの使用頻度や総額が特にポイントの加点に影響します。\n\n【応援ポイントに関係する項目】\n・コメント数\n・いいね数\n・視聴時間\n・リスナー数\n・パチパチ数\n・エール・コアファン","example":""},{"term":"追いハート","desc":"他のユーザーがエフェクト付きのアイテムを投げた後に、送られるハートのこと。このハートは「いいね」ではなくコインを消費して投げるアイテムのハートのことを指します。\n一定のコイン数以上のアイテムを使用した後に、ハートアイテムを一定時間使用したり、コメントをしたりすることによって、普段よりもその間の応援ポイントの倍率が高くなるような仕様はありません。\nただし、アイテムを使用したリスナーの人数が応援ポイントには大きく影響し応援ポイントに繋がるのため、普段はなかなかアイテムを使ったりコメントをしたりできないリスナーも一緒になって盛り上がることで、結果的にコメント人数やアイテムを使った人数が増えて応援ポイントが上がりやすくなります。","example":""},{"term":"おしのび配信（おしのび）","desc":"ライバーランクB-以上のライバーが、特定の条件が揃ったリスナーに対して行うことができる60分限定ライブ配信のこと。\nおしのび配信は最初の60分間が有効で、60分経つと通常の配信に切り替わります。また、おしのび配信にはバッジが付きます。\nおしのび配信はそのライバーの配信に対して、先月と今月の合計視聴時間が5時間に満たないユーザーだけが、配信枠の通知を受け取ることができるので、新規リスナーの定着に有効な手段として使われています。","example":""},{"term":"おやすみチケット(おやチケ)","desc":"使用すると1日だけメーターをプラスマイナス0にすることができるチケットです。おやすみチケットには通常のおやすみチケットとプレミアムおやチケがあります。\nおやすみチケットは毎週、月曜日から日曜日までで、所持枚数計9枚以下の場合に、その週の初回アプリ起動日に最大2枚獲得できます。\n例えば、その日の配信がランクメーター-1で終わりそうな時や配信をしない日などにおやすみチケットを使用することでメーターを0にすることができ、ランク維持が可能になります。","example":""}]},"everylive":{"あ行":[{"term":"一般ライバー","desc":"A\n一般ライバーは、オフィシャルライバーではないライバーが属するカテゴリです。\n\n一般ライバーには利用できない機能（フレンズルームの作成など）があります。\nオフィシャルライバーの認証登録をご希望の場合は、ライバー応募ページを参照の上、審査のお手続きにお進みください。","example":""},{"term":"イベント","desc":"イベントは、ライブ配信開始時に設定して、配信中に設定されたイベントのギフトの贈られた数やギフトのイベントポイントなどによって、イベントごとに順位をつけるものです。\nその順位によって、さまざまなプライズをもらうことができます。\n\nエブリライブでは季節ごとのイベントや、賞金や広告モデル出演権、フレンズの可愛いぬいぐるみがもらえるイベントが盛りだくさんです。","example":""},{"term":"ウォレット","desc":"ウォレットは、エブリライブ内でのお財布機能のことです。\nエブリライブ内でライバーに贈るギフトを購入するために必要なダイヤを購入したり、リスナーからギフトを贈られたライバーが獲得したベリーを確認することができます。\n\nウォレットからダイヤをチャージするには\nウォレットからダイヤをチャージすることができます。\n・ウォレットを開き、ダイヤのタブから購入を選択\n・チャージしたいダイヤ数を選択し、年齢認証をしてOKを選択","example":""},{"term":"エブリルーレット","desc":"エブリルーレットとは、リスナーが特定のギフトをライバーにギフティングすることによって、ライバーへのダイヤ付与のみならず、リスナー自身にも一定のダイヤが還元される仕組みのことです。\n還元されたダイヤは、マイページのウォレットの「獲得履歴」に「キャッシュバック」というタイトルで表示されます。\n\nエブリルーレットの仕組みは以下のとおりです。\n\n1.エブリルーレットの対象は、「青チップ(10)」「赤チップ(100)」「黒チップ(1000)」(以下、「対象ギフト」といいます。)です。\n2.リスナーが対象ギフトをギフティングいただくと、対象ギフトの20%分のダイヤがライバーに付与されます。\n3.また、2に加え、リスナーには対象ギフトの一定の割合のダイヤが還元されます。\n4.3の還元の割合は、10%/80%/180%/450%/2,000%のいずれかです。\n5.本仕様は予告なく変更される場合がございます。","example":""},{"term":"オフィシャルライバー","desc":"オフィシャルライバーとは、ライバーのうち当社所定の基準を満たしていると当社が認めた者及びその資格をいいます。オフィシャルライバーにはプロフィールページのEVERY IDの横にオフィシャルライバーマークがついています。","example":""}],"は行":[{"term":"プライベートフォローリスト","desc":"プライベートフォローリストをONにすると、自分のフォローリストやフォロワーリストを非公開にできます。マイページの詳細設定画面から設定を変更できます。","example":""},{"term":"フレンズ機能","desc":"フレンズ機能とは、ライバーが限定したメンバーによるチャットコミュニケーションツールです。フレンズルームを作成してみんなを招待してみましょう。\n※フレンズルームの作成はオフィシャルライバーが利用可能な機能です","example":""},{"term":"ブロック","desc":"対象アカウントのプロフィール画面を開いて右上の「…」をタップすると、ブロックリストに加えることができます。\n「ホーム画面」>「マイページ」>「ブロックリスト」とタップしてすすむと、ブロックしているアカウントの確認やブロックの解除ができます。\n\nブロック機能を使用すると悪質なコメントや悪質なユーザーの行為を防ぐことができます。\n・ブロックされたアカウントはブロックしたアカウントの配信、タイムライン、プロフィールを閲覧できなくなります\n・ブロックされたアカウントがブロックしたアカウントをフォローしていた場合、自動的にフォローが解除されます\n・ブロックされたアカウントはブロックしたアカウントのフォロー・フォロワーを閲覧できなくなります","example":""},{"term":"ベリー","desc":"ベリーとはリスナーからギフトを贈られたライバーが獲得できるポイントです。\nオフィシャルライバーが当月に獲得したベリーは、弊社が計算を行い翌々月末までに獲得ベリー・配信時間に応じた報酬をえられます。\nオフィシャルライバー以外の配信者が当月に獲得したベリーは翌月中に弊社がダイヤに交換します。ダイヤへの交換割合は獲得ベリー数の10％で、小数点以下の端数は切り捨てです。当月の獲得ベリー数が10未満の場合は翌月の獲得ダイヤ数は0となります。","example":""}],"ら行":[{"term":"ランキング","desc":"ランキングは、ライバーとリスナーの順位を示したものです。\n日毎、月毎で見ることができます。\n\nライバー：ギフト受け取ったポイントの多い順\nギフト：ギフトを贈ったポイントの多い順\n配信時間：配信時間の多い順\nランキングの上位に掲載されれば、より多くのユーザーさんに見てもらうことができます。","example":""},{"term":"ランダムギフト","desc":"ランダムギフトとは、リスナーが特定のギフトをライバーにギフティングすることによって、ライバーに付与されるダイヤ数がランダムに変動するギフトのことです。\n各ギフトボードやリスナーランキングなどには変動後のダイヤ数が反映されます。\n\nランダムギフトの仕組みは以下のとおりです。\n\n1.ランダムギフトの対象は、「ペットボトル」「ロケット」「スペースシャトル」(以下、「対象ギフト」といいます。)です。\n2.リスナーが対象ギフトをギフティングいただくと、ライバーに付与されるダイヤ数がランダムに変動します。\n3.変動するダイヤの割合は、対象ギフトのダイヤの10%/100%/180%/450%/2,000%のいずれかです。\n4.本仕様は予告なく変更される場合がございます。","example":""},{"term":"リザルト","desc":"リザルトは、エブリライブでの配信結果を確認できる機能です。\n日ごと、月ごとに確認できます。\n\n獲得したダイヤ\n有効ライブ配信時間\n累計ライブ配信時間\n累計ラジオ配信時間\nリザルトのメリット\nリザルトを確認すると、配信ごとにどれだけギフトを送ってもらえたかがわかります。\nどんな配信がリスナーに喜んでもらえたかをリザルトの機能をつかって確認してみましょう。","example":""},{"term":"レベル","desc":"エブリライブアプリの中でLv.と表示されるレベルは、エブリライブ内のステータスのひとつです。\n\nギフトやコメントを送ったり、受け取ったり、配信の盛り上がりの経験によってレベルをあげることができます。\n\nレベルでランク分けされるイベントもあります。\nレベルが高いほど、エブリライブで活躍しているユーザーさんだということがわかるステータスです。","example":""},{"term":"連続視聴","desc":"ライバーの配信を連続して5回以上視聴すると、連続視聴回数がカウントされるようになります。3回連続で見逃すと回数がリセットされます。\n不安定な回線状況で視聴すると連続視聴回数が正しくカウントされない場合があるため、安定した通信状況でのご利用を推奨しています。","example":""},{"term":"ログインボーナス","desc":"ログインボーナスは、アプリにログインをすると得られるギフトやダイヤのことです。\n\nログインボーナスの受け取り方\nエブリライブのアプリを開く\nトップページに表示される「7日間連続ログインボーナス」に表示される無料ギフトとダイヤをタップ\n受け取り時間\n受け取ることができる時間は朝6時から翌日5時59分までです。\n\nログインを続けると\n毎日連続してログインをすることで、より多くのギフトをもらうことができます。","example":""}],"ま行":[{"term":"ミッション","desc":"ミッションは、毎日更新される目標です。達成すると無料でギフトを獲得できます。\nミッションをクリアするとミッションギフトがもらえます。ミッションは毎日挑戦可能です。ミッション内容の確認は、配信画面上の左下の旗のマークから行えます。また、マイページの「ミッション」のアイコンからもご確認いただけます。ミッションで獲得したギフトは、配信画面上のギフト送信画面（配信画面右下のプレゼントマーク）を開いていただくと「イベント」「定番」「スタンプ」の横に「ボーナス」の項目がありますので、そちらからご確認いただけます。\n※新人ライバーのみに贈れるなど対象の限定されたギフトの場合もあります\n\nミッションとログインボーナスは毎朝6時にリセットされます。","example":""}],"さ行":[{"term":"サムネイルフレーム","desc":"サムネイルフレームとは自身が配信している際に表示されるサムネイルを装飾できる機能です。サムネイルフレームを所持している場合は画面下部の「◎」を押下後、配信設定画面で「ON/OFF」を設定できます。\n※サムネイルフレームには有効期限がある場合があります\n※複数サムネイルフレームを所持している場合でも、設定できるサムネイルフレームはひとつです","example":""}],"か行":[{"term":"ギフト","desc":"ギフトとはダイヤを消費してライバーに投げることができるデジタルアイテムです。ギフトを贈られたライバーはギフトに応じたベリーを獲得することができます。","example":""},{"term":"コメントフレーム","desc":"コメントフレームとは配信視聴画面内に投稿されるコメントの吹き出しを装飾する機能です。コメントフレームを所持している場合はマイページの詳細設定で「ON/OFF」を設定できます。\n※コメントフレームは配信入室時のコメントやギフト送信時のテキストには反映されませんので、予めご了承ください","example":""}],"な行":[{"term":"入室アニメーション","desc":"入室アニメーションとは配信に入室した際に表示される特別なアニメーション機能です。\nダイヤ購入キャンペーンやイベントプライズで獲得できます。\n\n入室アニメーションはマイページの詳細設定で表示の「ON/OFF」を設定できます。また、複数入室アニメーションを所持している場合は、詳細設定で表示したい入室アニメーションを選択できます。\n\n※入室アニメーションには有効期限がある場合があります\n※複数入室アニメーションを所持している場合でも、設定できるアニメーションはひとつです","example":""}],"た行":[{"term":"ダイヤ","desc":"ダイヤとはeveryliveアプリでライバーに贈るギフトを購入するためのポイントです。","example":""},{"term":"通知のONOFF設定","desc":"「ホーム画面」>「マイページ」>「詳細設定」>「通知設定」とタップしてすすむと、詳細な通知の設定ができます。\n「ユーザーの配信開始時」設定では、フォローしているユーザーごとに配信開始時の通知の設定ができます。\n\n※ご利用の端末の本体の設定で通知がOFFになっている場合は、アプリ内で設定をONにしても通知が届きませんのでご注意ください","example":""}],"英字":[{"term":"VOICE+（ラジオ配信）","desc":"VOICE+とは、音声のみのラジオ配信機能です。\nラジオ配信はアプリの中央下にある「◎」をタップして「VOICE+」から始めることができます。everyliveではラジオ配信だけでなく、写真を見せたり、ゲストを呼んでトークができる「VOICE Pair」機能もあります。","example":""}]},"17live":{"あ行":[{"term":"アーミー限定配信(アミ限)","desc":"アーミー限定配信とは、ライバーアーミーに入隊されているご利用者さまのみが視聴できる限定配信です。ライバーアーミーに入隊された日からアーミー限定配信をご視聴いただくことができます","example":""},{"term":"エール(フルエール)","desc":"ライバーを応援できる無料機能の1つです。配信ルーム右下にあるお菓子マークのボタンをタップし 1人のライバーに対し1日7回まで送れ、1日の上限を達成した場合に「フルエール」といわれています。\n複数のライバーに送ることが可能で さらに多くのエールを獲得したライバーは、ランクやスコアが上がり、注目欄に表示される可能性があります。","example":""}],"ら行":[{"term":"ライバー","desc":"ライブ配信者のこと","example":""},{"term":"リスナー","desc":"配信ルームで視聴をしているユーザーのことです。リスナーは配信ルームでギフトを贈ったりコメントしたりすることで、ライバーやほかのリスナーと交流をおこなうことができます","example":""},{"term":"レ点","desc":"同じライバーの配信を毎回欠かすことなく連続で視聴すると、その配信ルーム内でのみ、自分のID（名前）の右側とアイコンにレ点(チェックマーク)表示されます。チェックマークの色は連続視聴回数によって変化します\n・緑チェック：5回\n・青チェック：10回\n・紫チェック：20回\n・オレンジチェック：40回\n・シルバーチェック：80回\n・ゴールドチェック：160回\n・ブラックゴールドチェック：320回\n30分以上の配信を連続で5回見逃すとレ点がリセットされます。","example":""}],"は行":[{"term":"配信ルーム(枠)","desc":"ライバー(配信者)の配信画面のことです。配信ルームではギフトを贈ったりコメントしたりすることで、ライバーやほかのリスナーと交流をおこなうことができます。公式ワードではありませんが、一部で配信ルーム＝「枠」と言われています","example":""},{"term":"ベイビーコイン","desc":"17LIVEアプリで利用できる通貨です。\nベイビーコインは購入するほか、ミッションをクリアすることにより無料でゲットすることもできます","example":""}],"か行":[{"term":"ギフト","desc":"配信中にリスナーからライバーへ「ギフト」を贈ることができます。受け取ったギフトはライバーのロイヤリティ（報酬）となります。一般的に、配信中に贈るギフトのことを投げ銭と呼ばれます。また、公式ワードではありませんが、ギフトを贈るリスナーのことを一部で「ギフター」と言われています","example":""},{"term":"ガーディアン","desc":"ガーディアンはライバー（配信者）の守護神、応援団的な存在です。\n17LIVE内のポイントを使ったオークションで入札した人が就任できる仕組みになっており、誰でもガーディアンに就任するチャンスがあります。\n任期は最大7日間。7日前入札した時間帯に終了するか再入札することもできます\n\n・入室時に専用のアニメーションが流れる\n\n・名前の横にガーディアンの専用アイコンがつく\n\n・コメントの背景の色が変化する","example":""},{"term":"ガーミー","desc":"ガーディアンとライバーアーミーどちらにも加入して応援していることを一部で「ガーミー」と表現します","example":""}],"英字":[{"term":"Poke","desc":"Pokeとは「指で突っつく」という意味で17LIVEでは配信者から視聴者への挨拶として使われています","example":""}]}};
+    function loadData() {
+        const saved = localStorage.getItem('live_glossary_data');
+        if (saved) { 
+            glossaryData = JSON.parse(saved);
+            ["tiktok","pococha","everylive","17live"].forEach(app => { if(!glossaryData[app]) glossaryData[app] = {"あ行":[]}; });
+        } else { glossaryData = JSON.parse(JSON.stringify(initialData)); saveData(); }
+    }
+    function saveData() { localStorage.setItem('live_glossary_data', JSON.stringify(glossaryData)); }
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('mode-view').classList.toggle('active', mode==='view');
+        document.getElementById('mode-edit').classList.toggle('active', mode==='edit');
+        
+        document.getElementById('top-add-btn').style.display = mode==='edit' ? 'block' : 'none';
+        document.getElementById('backup-btn').style.display = mode==='edit' ? 'block' : 'none';
+        document.getElementById('download-btn').style.display = mode==='edit' ? 'block' : 'none';
+    }
+    function openApp(appId, appName) {
+        currentAppMode = appId;
+        document.getElementById('top-screen').style.display = 'none';
+        document.getElementById('app-wrapper').style.display = 'flex';
+        document.getElementById('app-header-title').textContent = appName;
+        
+        let accent = "#fe2c55";
+        if(appId==='pococha') accent = "#00AEEF";
+        if(appId==='everylive') accent = "#ff0080";
+        if(appId==='17live') accent = "#ff0000";
+        
+        document.getElementById('menu-btn').style.color = accent;
+        document.getElementById('menu-btn').style.borderColor = accent;
+        document.getElementById('view-desc-label').style.color = accent;
+        document.getElementById('view-example-label').style.color = accent;
+        document.getElementById('header-add-btn').style.display = currentMode === 'edit' ? 'block' : 'none';
+
+        currentRow = '';
+        document.getElementById('row-title').style.display = 'none';
+        document.getElementById('terms-list').innerHTML = '<div class="empty-message">メニューから選択してください</div>';
+        
+        document.getElementById('sidebar').classList.remove('is-hidden');
+        if (window.innerWidth <= 768) document.getElementById('sidebar-overlay').classList.add('show');
+    }
+    function goToTop() { document.getElementById('app-wrapper').style.display = 'none'; document.getElementById('top-screen').style.display = 'flex'; }
+    function toggleSidebar() { 
+        const sb = document.getElementById('sidebar'); const ov = document.getElementById('sidebar-overlay');
+        sb.classList.toggle('is-hidden'); 
+        if(sb.classList.contains('is-hidden')) ov.classList.remove('show'); else if(window.innerWidth<=768) ov.classList.add('show');
+    }
+    function showTerms(row) {
+        currentRow = row;
+        const title = document.getElementById('row-title'); const list = document.getElementById('terms-list');
+        title.style.display = 'block'; title.textContent = '【' + row + '】';
+        list.innerHTML = '';
+        if(!glossaryData[currentAppMode][row]) glossaryData[currentAppMode][row] = [];
+        
+        const terms = glossaryData[currentAppMode][row];
+        const accent = document.getElementById('menu-btn').style.color;
+
+        if (terms.length === 0) {
+            list.innerHTML = '<div class="empty-message">用語がありません</div>';
+        } else {
+            terms.forEach((item, idx) => {
+                const div = document.createElement('div'); 
+                div.className = 'term-item'; 
+                div.style.borderLeftColor = accent;
+                
+                if (currentMode === 'edit') {
+                    const upBtn = idx > 0 ? `<button class="move-btn" onclick="moveTerm(event, ${idx}, -1)">▲</button>` : '';
+                    const downBtn = idx < terms.length - 1 ? `<button class="move-btn" onclick="moveTerm(event, ${idx}, 1)">▼</button>` : '';
+                    
+                    div.innerHTML = `
+                        <span>${item.term}</span> 
+                        <div class="edit-controls">
+                            ${upBtn}
+                            ${downBtn}
+                            <span class="edit-icon">✎</span>
+                        </div>
+                    `;
+                    div.onclick = () => openEditModal(idx);
+                } else { 
+                    div.textContent = item.term; 
+                    div.onclick = () => openViewModal(item); 
+                }
+                list.appendChild(div);
+            });
+        }
+        
+        document.getElementById('sidebar').classList.add('is-hidden');
+        document.getElementById('sidebar-overlay').classList.remove('show');
+    }
+    function moveTerm(event, index, direction) {
+        event.stopPropagation();
+        const arr = glossaryData[currentAppMode][currentRow];
+        if (direction === -1 && index > 0) {
+            [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+        } else if (direction === 1 && index < arr.length - 1) {
+            [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+        }
+        saveData();
+        showTerms(currentRow); 
+    }
+    function openViewModal(item) {
+        document.getElementById('view-modal-title').textContent = item.term;
+        document.getElementById('view-modal-desc').textContent = item.desc;
+        const ex = document.getElementById('view-modal-example-section');
+        if(item.example) { document.getElementById('view-modal-example').textContent = "「" + item.example + "」"; ex.style.display = 'block'; }
+        else ex.style.display = 'none';
+        document.getElementById('view-modal').style.display = 'flex';
+    }
+    function openEditModal(idx) {
+        const isNew = idx === null;
+        document.getElementById('edit-app').value = currentAppMode;
+        document.getElementById('edit-row').value = currentRow || 'あ行';
+        document.getElementById('edit-index').value = isNew ? '' : idx;
+        if(isNew) { document.getElementById('edit-term').value = ''; document.getElementById('edit-desc').value = ''; document.getElementById('edit-example').value = ''; }
+        else { const it = glossaryData[currentAppMode][currentRow][idx]; document.getElementById('edit-term').value = it.term; document.getElementById('edit-desc').value = it.desc; document.getElementById('edit-example').value = it.example; }
+        document.getElementById('edit-delete-btn').style.display = isNew ? 'none' : 'block';
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+    function saveTerm() {
+        const app = document.getElementById('edit-app').value; const row = document.getElementById('edit-row').value;
+        const term = document.getElementById('edit-term').value; const desc = document.getElementById('edit-desc').value;
+        const ex = document.getElementById('edit-example').value; const idx = document.getElementById('edit-index').value;
+        if(!term || !desc) return alert('必須項目を入力してください');
+        if(!glossaryData[app][row]) glossaryData[app][row] = [];
+        if(idx === '') glossaryData[app][row].push({term, desc, example:ex});
+        else glossaryData[app][row][idx] = {term, desc, example:ex};
+        saveData(); document.getElementById('edit-modal').style.display = 'none'; showTerms(currentRow || row);
+    }
+    function deleteTerm() {
+        if(!confirm('削除しますか？')) return;
+        glossaryData[currentAppMode][currentRow].splice(document.getElementById('edit-index').value, 1);
+        saveData(); document.getElementById('edit-modal').style.display = 'none'; showTerms(currentRow);
+    }
+    function closeModal(e, id, force=false) { if(force || e.target.id === id) document.getElementById(id).style.display = 'none'; }
+    function downloadAdminBackup() {
+        const dataStr = JSON.stringify(glossaryData);
+        // 現在のソースコード（HTML・CSS）をそのままベースに、initialDataの部分だけを書き換えます
+        const exportHtml = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ライブ配信用語集 (管理ツール)</title>
+<style>
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; margin: 0; background-color: #f4f6f9; color: #333; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    #top-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f4f6f9; z-index: 5000; width: 100%; overflow-y: auto; padding: 40px 0; }
+    .top-title { font-size: 24px; color: #111; margin-bottom: 20px; font-weight: bold; }
+    .mode-toggle { display: flex; background: #e0e0e0; border-radius: 30px; overflow: hidden; margin-bottom: 30px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+    .mode-btn { padding: 10px 24px; font-size: 15px; font-weight: bold; color: #555; border: none; background: transparent; cursor: pointer; transition: all 0.2s; }
+    .mode-btn.active { background: #111; color: #fff; }
+    .app-select-btn { width: 80%; max-width: 300px; padding: 16px; margin-bottom: 12px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s; flex-shrink: 0; }
+    .app-select-btn:active { transform: scale(0.96); }
+    .btn-tiktok { background: #111111; color: #ffffff; }
+    .btn-pococha { background: #00AEEF; color: #ffffff; }
+    .btn-everylive { background: #ff0080; color: #ffffff; }
+    .btn-17live { background: #ff0000; color: #ffffff; }
+    .action-btn { display: none; width: 80%; max-width: 300px; padding: 14px; margin-top: 10px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+    .action-btn:active { transform: scale(0.98); }
+    #top-add-btn { margin-top: 20px; border: 2px dashed #888; background: transparent; color: #555; }
+    #top-add-btn:hover { background: #e9ecef; }
+    #backup-btn { border: none; background: #007bff; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    #download-btn { border: none; background: #24292e; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    #app-wrapper { display: none; flex-direction: column; height: 100vh; width: 100%; }
+    .app-header { display: flex; align-items: center; background: #ffffff; border-bottom: 1px solid #e0e0e0; padding: 10px 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1000; }
+    .header-btn { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 2px solid #ddd; color: #555; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; margin-right: 10px; }
+    .header-title { margin: 0; font-size: 16px; color: #111; font-weight: bold; }
+    .header-spacer { flex-grow: 1; }
+    .header-add-btn { display: none; background: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .layout-container { display: flex; flex-grow: 1; position: relative; overflow: hidden; }
+    .sidebar { width: 260px; min-width: 260px; background: #ffffff; border-right: 1px solid #e0e0e0; padding: 20px; box-sizing: border-box; overflow-y: auto; transition: margin-left 0.3s ease, transform 0.3s ease; z-index: 100; }
+    .sidebar.is-hidden { margin-left: -260px; }
+    #kana-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kana-btn { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 0; font-size: 16px; font-weight: bold; text-align: center; cursor: pointer; }
+    .wide-btn { grid-column: span 2; font-size: 14px; padding: 10px 0; }
+    .main-content { flex-grow: 1; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+    #terms-container { max-width: 600px; margin: 0 auto; }
+    .row-title { font-size: 20px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 8px; display: none; }
+    .term-item { background: #ffffff; padding: 16px 20px; margin-bottom: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid #aaa; display: flex; justify-content: space-between; align-items: center; }
+    .edit-controls { display: flex; gap: 8px; align-items: center; }
+    .move-btn { background: #e0e0e0; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #555; font-size: 12px; font-weight: bold; transition: background 0.2s; }
+    .move-btn:hover { background: #ccc; }
+    .edit-icon { color: #888; font-size: 18px; margin-left: 5px; }
+    .empty-message { color: #777; text-align: center; margin-top: 20px; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-content { background: #fff; width: 90%; max-width: 450px; border-radius: 12px; padding: 24px; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; }
+    #view-modal-title { margin: 0 0 15px 0; font-size: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .desc-label { font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block; }
+    .desc-text { font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 15px;}
+    .example-text { font-size: 14px; color: #555; background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ccc; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #555; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; font-family: inherit; }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+    .btn-save { background: #111; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-delete { background: #ff4d4d; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; display: none; }
+    .close-btn { width: 100%; padding: 12px; margin-top: 15px; background: #eee; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    #sidebar-overlay { display: none; }
+    @media (max-width: 768px) {
+        .sidebar { position: absolute; top: 0; left: 0; height: 100%; margin-left: 0; transform: translateX(0); box-shadow: 2px 0 15px rgba(0,0,0,0.15); }
+        .sidebar.is-hidden { transform: translateX(-100%); }
+        #sidebar-overlay.show { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
+    }
+</style>
+</head>
+<body>
+<div id="top-screen">
+    <div class="top-title">ライブ配信用語集</div>
+    <div class="mode-toggle">
+        <button id="mode-view" class="mode-btn active" onclick="switchMode('view')">閲覧モード</button>
+        <button id="mode-edit" class="mode-btn" onclick="switchMode('edit')">編集モード</button>
+    </div>
+    <button class="app-select-btn btn-tiktok" onclick="openApp('tiktok', 'TikTok')">TikTok 用語集</button>
+    <button class="app-select-btn btn-pococha" onclick="openApp('pococha', 'Pococha')">Pococha 用語集</button>
+    <button class="app-select-btn btn-everylive" onclick="openApp('everylive', 'Every Live')">Every Live 用語集</button>
+    <button class="app-select-btn btn-17live" onclick="openApp('17live', '17LIVE')">17LIVE 用語集</button>
+    <button id="top-add-btn" class="action-btn" onclick="openEditModal(null)">＋ 新規用語を登録</button>
+    <button id="backup-btn" class="action-btn" onclick="downloadAdminBackup()">💾 この管理ツール自体を保存 (admin.html)</button>
+    <button id="download-btn" class="action-btn" onclick="downloadForGitHub()">⬇ GitHub用にダウンロード (index.html)</button>
+</div>
+<div id="app-wrapper">
+    <header class="app-header">
+        <button class="header-btn" onclick="goToTop()">◀ 戻る</button>
+        <button class="header-btn menu-btn" onclick="toggleSidebar()" id="menu-btn">☰ メニュー</button>
+        <h1 class="header-title" id="app-header-title">用語集</h1>
+        <div class="header-spacer"></div>
+        <button id="header-add-btn" class="header-add-btn" onclick="openEditModal(null)">＋ 追加</button>
+    </header>
+    <div class="layout-container">
+        <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
+            <div id="kana-grid">
+                <div class="kana-btn" onclick="showTerms('あ行')">あ</div><div class="kana-btn" onclick="showTerms('か行')">か</div>
+                <div class="kana-btn" onclick="showTerms('さ行')">さ</div><div class="kana-btn" onclick="showTerms('た行')">た</div>
+                <div class="kana-btn" onclick="showTerms('な行')">な</div><div class="kana-btn" onclick="showTerms('は行')">は</div>
+                <div class="kana-btn" onclick="showTerms('ま行')">ま</div><div class="kana-btn" onclick="showTerms('や行')">や</div>
+                <div class="kana-btn" onclick="showTerms('ら行')">ら</div><div class="kana-btn" onclick="showTerms('わ行')">わ</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('英字')">英字</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('数字')">数字</div>
+                <div class="kana-btn wide-btn" onclick="showTerms('絵文字')">絵文字</div>
+            </div>
+        </aside>
+        <main class="main-content" id="main-content">
+            <div id="terms-container">
+                <div id="row-title" class="row-title"></div>
+                <div id="terms-list"><div class="empty-message">メニューから行を選択してください</div></div>
+            </div>
+        </main>
+    </div>
+</div>
+<div id="view-modal" class="modal-overlay" onclick="closeModal(event, 'view-modal')"><div class="modal-content"><h2 id="view-modal-title"></h2><span class="desc-label" id="view-desc-label">【意味】</span><div id="view-modal-desc" class="desc-text"></div><div id="view-modal-example-section"><span class="desc-label" id="view-example-label">【使用例】</span><div id="view-modal-example" class="example-text"></div></div><button class="close-btn" onclick="closeModal(event, 'view-modal', true)">閉じる</button></div></div>
+<div id="edit-modal" class="modal-overlay" onclick="closeModal(event, 'edit-modal')"><div class="modal-content"><h2 id="edit-modal-title"></h2><input type="hidden" id="edit-index"><div class="form-group"><label>対象アプリ</label><select id="edit-app" class="form-control"><option value="tiktok">TikTok</option><option value="pococha">Pococha</option><option value="everylive">Every Live</option><option value="17live">17LIVE</option></select></div><div class="form-group"><label>カテゴリ（行）</label><select id="edit-row" class="form-control"><option value="あ行">あ行</option><option value="か行">か行</option><option value="さ行">さ行</option><option value="た行">た行</option><option value="な行">な行</option><option value="は行">は行</option><option value="ま行">ま行</option><option value="や行">や行</option><option value="ら行">ら行</option><option value="わ行">わ行</option><option value="英字">英字</option><option value="数字">数字</option><option value="絵文字">絵文字</option></select></div><div class="form-group"><label>用語名</label><input type="text" id="edit-term" class="form-control"></div><div class="form-group"><label>意味</label><textarea id="edit-desc" class="form-control"></textarea></div><div class="form-group"><label>使用例（任意）</label><textarea id="edit-example" class="form-control"></textarea></div><button class="btn-save" onclick="saveTerm()">保存する</button><button id="edit-delete-btn" class="btn-delete" onclick="deleteTerm()">削除</button><button class="close-btn" onclick="closeModal(event, 'edit-modal', true)">キャンセル</button></div></div>
+<script>
+    let currentMode = 'view'; let currentAppMode = 'tiktok'; let currentRow = ''; let glossaryData = {};
+    const initialData = ${dataStr};
+    ${loadData.toString()}
+    ${saveData.toString()}
+    ${switchMode.toString()}
+    ${openApp.toString()}
+    ${goToTop.toString()}
+    ${toggleSidebar.toString()}
+    ${showTerms.toString()}
+    ${moveTerm.toString()}
+    ${openViewModal.toString()}
+    ${openEditModal.toString()}
+    ${saveTerm.toString()}
+    ${deleteTerm.toString()}
+    ${closeModal.toString()}
+    ${downloadAdminBackup.toString()}
+    ${downloadForGitHub.toString()}
+    window.onload = () => { loadData(); if (window.innerWidth <= 768) document.getElementById('sidebar-overlay').classList.add('show'); };
+<\/script>
+</body>
+</html>`;
+        
+        const blob = new Blob([exportHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'admin.html'; a.click();
+    }
+    function downloadForGitHub() {
+        const dataStr = JSON.stringify(glossaryData);
+        const exportHtml = `<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>ライブ配信用語集</title><style>
 body{font-family:sans-serif;margin:0;background:#f4f6f9;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#top-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow-y:auto;padding:40px 0;position:relative;}
-.return-summary-link{display:inline-flex;align-items:center;justify-content:center;margin-bottom:25px;padding:10px 24px;background:#fff;color:#333;border:2px solid #ddd;border-radius:30px;font-size:14px;font-weight:bold;text-decoration:none;transition:0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.05);flex-shrink:0}
-.return-summary-link:hover{background:#f0f0f0}
+#top-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow-y:auto;padding:40px 0}
 .app-select-btn{width:80%;max-width:300px;padding:16px;margin-bottom:12px;font-weight:bold;font-size:18px;border-radius:12px;cursor:pointer;border:none;color:#fff;flex-shrink:0}
 .btn-tiktok{background:#111}.btn-pococha{background:#00AEEF}.btn-everylive{background:#ff0080}.btn-17live{background:#ff0000}
 #app-wrapper{display:none;flex-direction:column;height:100vh}
@@ -12,54 +407,36 @@ body{font-family:sans-serif;margin:0;background:#f4f6f9;display:flex;flex-direct
 .sidebar{width:260px;background:#fff;border-right:1px solid #ddd;padding:20px;transition:0.3s}
 .sidebar.is-hidden{margin-left:-260px}
 #kana-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kana-btn{background:#f9f9f9;border:1px solid #ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;font-weight:bold;transition:0.2s;}
-.kana-btn.empty-row{color:#ccc;border-color:#eee;font-weight:normal;background:#fcfcfc;}
+.kana-btn{background:#f9f9f9;border:1px solid #ddd;padding:12px;text-align:center;border-radius:8px;cursor:pointer;font-weight:bold}
 .main-content{flex-grow:1;padding:20px;overflow-y:auto}
 .term-item{background:#fff;padding:15px;margin-bottom:10px;border-radius:8px;border-left:4px solid #aaa;cursor:pointer;font-weight:bold}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);justify-content:center;align-items:center;z-index:2000}
 .modal-content{background:#fff;width:90%;max-width:450px;padding:24px;border-radius:12px}
 @media(max-width:768px){.sidebar{position:absolute;height:100%;z-index:100}.sidebar.is-hidden{transform:translateX(-100%);margin-left:0}}
 </style></head><body>
-<div id="top-screen">
-<a href="https://tashi-kusanose.github.io/stream_summary/" class="return-summary-link">🏠 まとめに戻る</a>
-<h1 style="font-size:24px;margin-bottom:30px;flex-shrink:0;">ライブ配信用語集</h1>
+<div id="top-screen"><h1 style="font-size:24px;margin-bottom:30px">ライブ配信用語集</h1>
 <button class="app-select-btn btn-tiktok" onclick="openApp('tiktok','TikTok','#fe2c55')">TikTok 用語集</button>
 <button class="app-select-btn btn-pococha" onclick="openApp('pococha','Pococha','#00AEEF')">Pococha 用語集</button>
 <button class="app-select-btn btn-everylive" onclick="openApp('everylive','Every Live','#ff0080')">Every Live 用語集</button>
 <button class="app-select-btn btn-17live" onclick="openApp('17live','17LIVE','#ff0000')">17LIVE 用語集</button></div>
-<div id="app-wrapper">
-<header class="app-header">
-    <button class="header-btn" id="menu-btn" onclick="toggleSidebar()">☰ メニュー</button>
-    <h2 id="app-title" style="margin:0 0 0 10px;font-size:16px"></h2>
-    <div style="flex-grow:1"></div>
-    <button class="header-btn" style="margin-right:0;" onclick="location.reload()">トップに戻る</button>
-</header>
+<div id="app-wrapper"><header class="app-header"><button class="header-btn" onclick="location.reload()">◀ 戻る</button><button class="header-btn" id="menu-btn" onclick="toggleSidebar()">☰ メニュー</button><h2 id="app-title" style="margin:0 auto 0 0;font-size:16px"></h2></header>
 <div style="display:flex;flex-grow:1;overflow:hidden"><aside class="sidebar is-hidden" id="sidebar"><div id="kana-grid"></div></aside><main class="main-content"><h3 id="row-title" style="display:none;border-bottom:2px solid #ddd;padding-bottom:8px"></h3><div id="list"></div></main></div></div>
 <div id="modal" class="modal-overlay" onclick="closeM(event)"><div class="modal-content"><h2 id="m-t" style="margin-top:0"></h2><p id="m-d" style="white-space:pre-wrap"></p><div id="m-e-s" style="background:#f9f9f9;padding:10px;border-radius:6px;border-left:3px solid #ccc"><p id="m-e" style="margin:0"></p></div><button style="width:100%;padding:12px;margin-top:20px;font-weight:bold" onclick="closeM(null,true)">閉じる</button></div></div>
 <script>
-const data = {"tiktok":{"あ行":[{"term":"アイテム","desc":"コラボバトルで使うもの。それぞれのアイテムは、バトルで優位に立てる効果を持つ。バトルで勝利した時に貢献度が高いリスナーにランダムに支給される。","example":"上位3人、アイテムゲットだね！"},{"term":"アカウント または 垢","desc":"TikTokなどのサービスやプラットフォームを利用するために必要なもので、ユーザーを識別する役割を持つ。","example":"TikTok面白そうだから、アカウント作ろうかな。"},{"term":"いいね","desc":"配信中に画面をタップすると「いいね」として数字が計上されていく。1アカウントで1時間に3000回までタップできる。","example":"画面タップで応援よろしくお願いします！"},{"term":"いつメン","desc":"配信に参加率の高いメンバーのこと。いつものメンバーの略。","example":"今日はいつメンが少ないね。"},{"term":"運営","desc":"TikTok本社（プラットフォーム）を示す言葉。トラブルなどがあった時に報告をする。","example":"この不具合は運営さんに報告した方が良いね。"},{"term":"エモート","desc":"サブスクに入っている人がコメントで使える特別な画像コメントのこと。","example":"新しいエモート追加したよ！"},{"term":"推し","desc":"特に気に入って応援しているライバーのこと。推しへの熱量に応じて「単推し」や「激推し」と表現されることがあるが、複数のライバーを推しているリスナーも少なくない。","example":"僕の推しさんは◯◯です。"},{"term":"オプチャ","desc":"LINEのオープンチャットのこと。配信の告知、連絡などに活用されることが多い。","example":"サブスクメンバー、オプチャに入ってね！"},{"term":"お花摘み","desc":"主に女性ライバーが配信中にトイレに行く時に使う隠語。","example":"ちょっとお花摘みに行ってくるね。"},{"term":"お楽しみ袋","desc":"ライバーが設定できる機能で、抽選によってリスナーにコインをプレゼントできる。\n条件を設定して、対象のリスナーを限定することも可能。","example":"お楽しみ袋置くねー。"}],"か行":[{"term":"ガチバトル（予約バトル）","desc":"ライバー同士があらかじめ日時を設定し、事前告知した上で体制を作って行うバトルのこと。","example":"いよいよ明日は◯◯とのガチバトルだね。"},{"term":"ガチ日","desc":"ライバーが特別な日に設定し、長時間配信やコラボなどを交え、日間ランキングまたは人気ランキング上位を狙うイベント。誕生日や周年記念などで設定されることが多い。","example":"来月のガチ日はぜひ応援してね！"},{"term":"ギフト","desc":"リスナーからライバーに贈るもの。金額の小さいものから大きいものまであり、ライバーの報酬に繋がる。","example":"このライバーさんの配信楽しいから、大きめのギフト贈っちゃおうかな。"},{"term":"ギフトギャラリー（ギフギャラ）","desc":"配信者ごとに設定されている指定ギフトの一覧のこと。毎週月曜日の0時にリセットされる。ギフトギャラリー内のギフトを指定数分贈ると、ギフトが点灯する仕組み。","example":"ギフギャラ、残りひとつになったね！"},{"term":"ギフリア（ギフトリアクション）","desc":"ライバーさんがギフトを贈ってもらった時に反応するリアクションのこと。ギフト毎にリアクションを分けているライバーが多い。","example":"そのギフリア面白いw"},{"term":"ギフレベ （ギフトレベル）","desc":"すべてのライブ配信に対して贈ったギフトの総合計によって決まるランク。ギフレベは1から50まで存在する。","example":"◯◯さん、ギフレベ45ってすごいですね！"},{"term":"グローブ","desc":"アイテムの一種。バトル中に使用すると、約30%の確率でギフトのコイン数が5倍で計上される効果がある。効果は30秒間持続する。","example":"残り時間30秒でグローブ投入します！"},{"term":"ゲリラ配信","desc":"事前に予告していない時間に急に配信すること。","example":"急に時間できたのでゲリラ配信してみた。"},{"term":"コイン","desc":"ギフトを購入するためのTikTok内で利用できる通貨。アプリから直接購入するか、ブラウザでサイトから購入することもできる。","example":"コインがなくなったからチャージしないと！"},{"term":"貢献","desc":"バトルやイベントでより多くのポイント、ギフトを贈ったリスナーに対して使われる表現","example":"今回の貢献1位は◯◯さんでしたー！"},{"term":"小窓","desc":"配信中にゲストとして参加すること。画面内に小さなスペースができてその部分に参加することから小窓と呼ばれている。","example":"モデさん、小窓上がって！"},{"term":"コメBAN","desc":"コメントがTikTokのAI判定で消されてしまうこと。配信者や他のリスナーには見えていない状態になる。","example":"さっきコメントしたんだけど、コメBANだったのかなー。"},{"term":"コメント（コメ）","desc":"配信中にリスナーが文字を打ち込んで送信するもの。コメントが多いと配信が盛り上げる。","example":"初見さんもどんどんコメントしてね！"},{"term":"コラボ","desc":"配信中にライバーと別のライバーがコラボレーションすること。画面が分割されて、同じ画面で複数人が登場し、会話やバトルをすることができる。","example":"コラボありがとうございます。"}],"さ行":[{"term":"サブアカ または サブ垢","desc":"メインで使っているアカウントとは別に作成したサブアカウントのこと。サブ垢や兄弟垢とも呼ばれる。また、サブ垢に対してメインのアカウントを本垢と呼ぶこともある。","example":"あのライバーさん、今イベントやってるからサブ垢でも応援に行こうかな。"},{"term":"差し込み","desc":"コラボバトルで終了間際にギフトを贈ること。それまで劣勢でも差し込みで大逆転することもある。","example":"◯◯さん、ナイス差し込み！"},{"term":"サブスク","desc":"固定のライバーさんを応援するために月額固定料金を支払って、限定特典を受けるもの。サブスク限定配信に参加できたり、そのライバーさん専用のエモートが使えたりするなどの特典がある。","example":"サブスク入会ありがとうございます。"},{"term":"サブスク限定（サブ限）","desc":"サブスクメンバーのみが利用できる機能やコンテンツ。\n• サブスク限定動画：サブスクメンバーだけが視聴できる動画。\n• サブスク限定配信：メンバー以外はプレビューのみ視聴可能な配信。\n• サブスク限定コメント：サブスクメンバーだけがコメントできる機能。","example":"来週はサブスク限定配信やるね"},{"term":"シェア","desc":"ライブ配信中であることを、配信外の人に共有するための機能。SNS、メッセージアプリ、メールなど、さまざまなツールと連携して使用できる。","example":"シェアありがとうございます！"},{"term":"素手","desc":"コラボバトルでアイテムを使わずにバトルすること。","example":"アイテム誰も持っていないのでここは素手で行こう！"},{"term":"スピードチャレンジ","desc":"コラボバトル中にランダムで発生するチャレンジ。チャレンジの目標を達成すると一定時間ギフトのコイン数が2〜3倍で計上される。スピチャレ、スピチャと略す場合が多い。","example":"今回はスピチャレなかったねー。"},{"term":"初見","desc":"初めてその配信を見る人のこと。","example":"初見です、よろしくお願いします"},{"term":"スラる","desc":"画面を間違えてスライドしてしまい、意図に反して他の配信に入ってしまうこと。","example":"スラって海外のライバーさんの配信に入っちゃった"}],"た行":[{"term":"盾イベ","desc":"TikTok LIVEの代表的なイベントのひとつ。正式名称はLIVE Rankingだが、上位入賞者に盾が贈呈されることから盾イベと呼ばれている。ギフト部門と投票部門が存在し、ここに入賞するとトップライバーとして認識されるようになる。","example":"来月の盾イベ、参加しようか。"},{"term":"宝箱","desc":"ライバー、リスナーともに置くことができるもので、抽選でコインをプレゼントするもの。リスナーが少ない時、集めたい時に活用されることが多い。","example":"宝箱ありがとうございます！"},{"term":"チーム","desc":"ハートミーというギフトを初めて送信すると、そのライバーのチームの一員となる。","example":"チームのメンバー大募集中！"},{"term":"定期","desc":"リスナーが定期的に書き込むコメントのこと。配信上の注意事項やイベントの告知などを案内することが多く、主にはモデレーターが書き込む。","example":"◯◯さん、定期ありがとう"},{"term":"殿堂ランキング","desc":"いずれかの曜日に日間ランキングの10位以内に入ったLIVEクリエイターの1週間の合計で計算されるランキング。","example":"あのランカーさん、今週もまた殿堂の1位だね！"},{"term":"同接（同時接続者数）","desc":"その配信にリアルタイムで参加している人数のこと。画面右上で数字で確認することができる。","example":"今同接多いね！"},{"term":"凸る","desc":"事前のやりとりがない状態で、配信中にライバーが他のライバーへコラボ申請を送る行為。「突撃する」という言葉が由来で、主にコラボバトルを申し込む際に使われる。","example":"誰か凸ってみようかな"}],"な行":[{"term":"ナイギフ","desc":"リスナーがギフトを贈った時にそれを褒める言葉、ナイスギフトの略。","example":"ライオン（ギフト名）、ナイギフー！！！"},{"term":"投げる","desc":"「ギフトを投げる」を略して単に「投げる」と表現される","example":"明日は誕生日だからたくさん投げるよ！"},{"term":"投げ師","desc":"高額ギフトを頻繁に送るリスナーのことを指す。自ずとギフレベは高い。","example":"投げ師さんが私の枠に来てくれた。"},{"term":"日間ランキング","desc":"1日単位でギフトの総コイン数で計算されるランキング。","example":"来月のガチ日は日間上位狙いたいね。"},{"term":"人気ランキング","desc":"1日単位でハートミー、視聴時間、ギフト数などのポイント数で計算されるランキング。","example":"月に1度は人気ランキング入りしたいね。"}],"は行":[{"term":"配信枠 または 枠","desc":"ライバーが配信しているルームのこと。配信自体を指す。","example":"コメントやギフトで枠を盛り上げよう！"},{"term":"ハートミー","desc":"1日1回しか送れない特別なチームギフト。初めて贈った時はチームに加入することを意味し、それ以降はチームメンバーであることを意味する。","example":"新規メンバー、ハートミー集めてます！"},{"term":"バトル","desc":"配信中のコラボにおいて、コラボ相手と行うもの。リスナーさんから送られた「いいね」、「ギフト」、「アイテムの効果」によるポイントで勝敗が決まる。","example":"バトル行ってもいい？"},{"term":"ハンマー","desc":"アイテムのひとつ。バトル中に投入し5コイン以上のギフトを贈ると、バトル相手の画面上にハンマーが飛んでいくエフェクトが出現する。30秒間有効。相手のグローブの威力を弱めるという説もある。","example":"ハンマー持っている人はいつでも出して大丈夫だよ！"},{"term":"ピン留め","desc":"配信中のコメントで注目すべきものがあった場合に一定時間固定表示されるコメントのこと。主には配信者、モデレーターが活用している。","example":"ピン留めお願いします！"},{"term":"フォロー","desc":"自分が気に入った配信者や動画クリエイターをフォローすると、フォローリストに入るので配信状況や新作のアップロード状況が把握しやすくなる。","example":"ここの配信楽しいからフォローしますね！"},{"term":"フォローバック（フォロバ）","desc":"フォローされた人がフォローし返す行為。これが成立すると相互フォローの状態になる。","example":"フォロバしておきました！"},{"term":"ブロック","desc":"特定のライバーに対して、視聴、コメントなどを制限すること。アカウントに対してブロックするとそれ以降お互いのやり取りが一切できなくなる。","example":"変なコメントしてたあのリスナー、ブロックされてたね。"},{"term":"ポータル","desc":"他の配信に宣伝として送信される宝箱。その宝箱をタップするとポータル元の配信へと移動し、抽選でコインを得られる権利が発生する。","example":"ポータルありがとうございます！"},{"term":"ボーナスタイム（時間延長）","desc":"アイテムのひとつ。本来のバトル時間に+10秒延長することができる。1回のバトルで最大3回使うことができる。","example":"ボーナスタイム投入します！"}],"ま行":[{"term":"マイイベ","desc":"ライバーが自分で企画するイベントのこと。","example":"夏なので花火のギフトを集めるマイイベを開催します！"},{"term":"ミスト","desc":"アイテムの一種。バトル中に使用すると、相手側から自分たちのスコアが見えなくなる効果を持つ。効果は30秒間持続する。","example":"残り時間30秒でミスト投入します！"},{"term":"ミュート","desc":"①コラボ中に相手の音声を消すこと。\n②リスナーに対してブロックはしないがコメントをしないように強制すること。","example":"お互いミュートで貢献者を読み上げましょう！"},{"term":"メンション","desc":"配信中のコメントで、特定のリスナーに対して送るメッセージ。@+名前、で送信できる。","example":"わざわざメンションありがとうございます！"},{"term":"メンレベ","desc":"チームメンバーのレベルのことで、メンバーレベルの略。ギフト贈呈数、視聴時間、コメントなどいくつかの要素に基づいて、レベルが上がる仕組み。","example":"メンレベアップ、ナイスー！"},{"term":"潜り","desc":"リスナーとして配信に参加しているがコメントやギフトでの参加はしていない状態のこと。","example":"ご飯食べながら見るので潜ります！"},{"term":"モデレーター（モデ）","desc":"ライバーをサポートする役割を担い、ライバーが直接指定することで任命される。主な業務は、コラボに関する挨拶、おかしなコメントのミュートやブロック、安定した配信をサポートするための定期コメント送信、他枠との交流など、多岐にわたる。","example":"◯◯さんが△△枠のモデになったんだね！"}],"や行":[{"term":"闇投げ","desc":"配信中にライバーがトイレなどで離席している間に、リスナーがギフトを投げること。通常は少額のギフトが多いが、大きなギフトが贈られるとライバーが驚くこともある。","example":"また闇投げしたの！？"}],"ら行":[{"term":"ライバー（配信者）","desc":"ライブ配信をしている人のこと。","example":"あのライバーさんの配信楽しいね。"},{"term":"ラグい","desc":"通信や端末の影響により、画面が正常に映らなかったり、音声が止まったり遅れたりすること。英語のLagから来ている。","example":"ラグいから一回入り直してみた。"},{"term":"ラジオ配信","desc":"カメラを使わずに壁紙や写真などを映しながら声だけで配信すること。","example":"今日はすっぴんだからラジオ配信にするね。"},{"term":"ランオフ","desc":"ランキングオフの略。ランオフにすると他の人からレベルが見えないようになる。メンレベ、ギフレベ、共にランオフすることができる。","example":"◯◯さん、ランオフになっているよー。"},{"term":"ランカー","desc":"常にランキング上位に入っているライバーのこと。","example":"昨日ランカーさんのバトル見たけどギフトすごかったよ。"},{"term":"リスナー","desc":"ライブ配信を視聴している人のこと。視聴者を指す。","example":"あのリスナーさんのコメント面白いよね"}],"わ行":[{"term":"枠投げ","desc":"バトル以外の通常配信時に投げること。","example":"枠投げは特に嬉しいよね！"}],"英字":[{"term":"ASMR","desc":"ものを食べるときの咀嚼音を中心とし、人間が気持ちが良いと感じる音を扱った配信や動画。","example":"今度ASMR配信するね。"},{"term":"BAN","desc":"禁止行為などが原因で、配信やアカウントが停止されてしまうこと。","example":"あのライバーさん、BANになってたよ。"},{"term":"Fandom Championship","desc":"TikTok LIVEの代表的なイベントのひとつ。上位入賞者にはライバーの名前が入った景品が送られる。2ヶ月毎に盾イベと交互に開催される。「ファンダム」と略される。","example":"ファンダム終盤だから日間ランキング荒れてるね。"}],"数字":[{"term":"0差し","desc":"コラボバトルで終了0秒でギフトを贈って逆転を狙うこと。","example":"◯◯さん、ナイス0差し！"},{"term":"4コラ","desc":"コラボは複数人でやることができるため、「人数+コラ」で表現される。4コラであれば4人のコラボのこと。","example":"4コラやりませんか？"}],"絵文字":[{"term":"?（BANの隠語）","desc":"「BAN」というワードそのものがネガディブなため、代わりに使う絵文字。","example":"あのライバーさん、?になってたよ。"},{"term":"?（ブロックの隠語）","desc":"「ブロック」というワードそのものがネガティブなため、代わりに使う絵文字","example":"変なコメントしてたあのリスナーさん、?されてたね。"}]},"pococha":{"あ行":[{"term":"アイテム","desc":"視聴中のリスナーが配信者に対してにコインを消費して使用できるものです。（一般的に「投げ銭」と言われているもの）\nアイテムを使用することで、配信・視聴中の画面にさまざまなエフェクトを発生させることができ、配信を盛り上げることができます。\nアイテムに応じて使ったリスナーともらったライバーは、それぞれ経験値を獲得することができます。経験値が一定以上になるとレベルが上がります。","example":""},{"term":"アイテムリアクション","desc":"ライバーがアイテムを投げて貰った際に行うリアクションです。\n例えば、ハートを送ってもらったら指ハートの形を作ったりするなどそれぞれのアイテムにあったリアクションをすることが一般的です。\n特にどういったリアクションをしなければいけないと決まっているわけではなく、多くのライバーさんは個性を出すために独自のアイテムリアクションを考えています。\nこのアイテムリアクションを楽しみにアイテムを投げてくれるリスナーの方は多いです。","example":""},{"term":"アシスタント","desc":"ファミリー開設者が任命したサポート役・管理者のこと。一つのファミリーで最大で5人まで任命する事ができます。\nアシスタントに就任すると、ファミリー開設者の枠で快適で楽しい配信を実現するための、以下の機能が使えるようになります。\n\n【アシスタントの機能】\n・コメントに「エフェクト」がつきます。\n・ファミリーの開設者の代わりにコメント禁止、代理ブロック機能を使えます。\n・ファミリーの開設者の代わりに、ファミリーへの招待、承認・見送り、脱退を行えます。","example":""},{"term":"アシマ","desc":"アシスタントに就任した人に付く「+」マークのこと。アシスタントマークの略称。","example":""},{"term":"アーカイブ","desc":"ライバーが配信した映像が録画となって残る機能のこと。\nアーカイブはプロフィールより確認し視聴することができます。アーカイブの保存期間が【配信から90日間】となります。\nアーカイブにはコメントやアイテムのエフェクトは表示されません。また、ラジオ配信もアーカイブには残りません。","example":""},{"term":"いいね","desc":"ライブ配信画面でリスナーが画面をタップすることで発生するハートエフェクトのこと。\nタップするほどハートマークが画面上に浮かび、長押しすると自動で「いいね」をし続けることができます。\n「いいね」がたくさんあると、雷マークの【注目度】が上がりポコチャのホーム画面において上位に表示されやすくなります。そのため、いいねが多い配信は新規リスナーを呼び込みやすくなります。\nまたいいねが多いと盛り上がり度があがり、ライバーの報酬にも繋がります。","example":""},{"term":"応援ポイント","desc":"配信に対するその日の応援活動によって決まるポイントです。\n応援ポイントは各種ランキングやメーターの増減、盛り上がりダイヤに関係する重要な指標であり、アイテムの使用頻度や総額が特にポイントの加点に影響します。\n\n【応援ポイントに関係する項目】\n・コメント数\n・いいね数\n・視聴時間\n・リスナー数\n・パチパチ数\n・エール・コアファン","example":""},{"term":"追いハート","desc":"他のユーザーがエフェクト付きのアイテムを投げた後に、送られるハートのこと。このハートは「いいね」ではなくコインを消費して投げるアイテムのハートのことを指します。\n一定のコイン数以上のアイテムを使用した後に、ハートアイテムを一定時間使用したり、コメントをしたりすることによって、普段よりもその間の応援ポイントの倍率が高くなるような仕様はありません。\nただし、アイテムを使用したリスナーの人数が応援ポイントには大きく影響し応援ポイントに繋がるのため、普段はなかなかアイテムを使ったりコメントをしたりできないリスナーも一緒になって盛り上がることで、結果的にコメント人数やアイテムを使った人数が増えて応援ポイントが上がりやすくなります。","example":""},{"term":"おしのび配信（おしのび）","desc":"ライバーランクB-以上のライバーが、特定の条件が揃ったリスナーに対して行うことができる60分限定ライブ配信のこと。\nおしのび配信は最初の60分間が有効で、60分経つと通常の配信に切り替わります。また、おしのび配信にはバッジが付きます。\nおしのび配信はそのライバーの配信に対して、先月と今月の合計視聴時間が5時間に満たないユーザーだけが、配信枠の通知を受け取ることができるので、新規リスナーの定着に有効な手段として使われています。","example":""},{"term":"おやすみチケット(おやチケ)","desc":"使用すると1日だけメーターをプラスマイナス0にすることができるチケットです。おやすみチケットには通常のおやすみチケットとプレミアムおやチケがあります。\nおやすみチケットは毎週、月曜日から日曜日までで、所持枚数計9枚以下の場合に、その週の初回アプリ起動日に最大2枚獲得できます。\n例えば、その日の配信がランクメーター-1で終わりそうな時や配信をしない日などにおやすみチケットを使用することでメーターを0にすることができ、ランク維持が可能になります。","example":""}]},"everylive":{"あ行":[]},"17live":{"あ行":[]}}; let curApp = ''; let curAccent = '';
+const data = ${dataStr}; let curApp = ''; let curAccent = '';
 const rows = ['あ行','か行','さ行','た行','な行','は行','ま行','や行','ら行','わ行','英字','数字','絵文字'];
-window.onload = () => { const g = document.getElementById('kana-grid'); rows.forEach(r => { const d = document.createElement('div'); d.className='kana-btn'; if(r==='英字'||r==='数字'||r==='絵文字') d.style.gridColumn='span 2'; const ts = (data['tiktok'] && data['tiktok'][r]) ? data['tiktok'][r] : []; if(ts.length === 0) d.classList.add('empty-row'); d.textContent = (r.endsWith('行') && r.length === 2) ? r[0] : r; d.onclick=()=>show(r); g.appendChild(d); }); };
-function openApp(id, name, color) { 
-    curApp=id; curAccent=color; 
-    document.getElementById('top-screen').style.display='none'; 
-    document.getElementById('app-wrapper').style.display='flex'; 
-    document.getElementById('app-title').textContent=name; 
-    document.getElementById('menu-btn').style.color=color; 
-    document.getElementById('menu-btn').style.borderColor=color; 
-    const g = document.getElementById('kana-grid'); g.innerHTML='';
-    rows.forEach(r => { 
-        const d = document.createElement('div'); d.className='kana-btn'; 
-        if(r==='英字'||r==='数字'||r==='絵文字') d.style.gridColumn='span 2'; 
-        const ts = (data[curApp] && data[curApp][r]) ? data[curApp][r] : [];
-        if(ts.length === 0) d.classList.add('empty-row');
-        d.textContent = (r.endsWith('行') && r.length === 2) ? r[0] : r; 
-        d.onclick=()=>show(r); g.appendChild(d); 
-    });
-    toggleSidebar(); 
-}
+window.onload = () => { const g = document.getElementById('kana-grid'); rows.forEach(r => { const d = document.createElement('div'); d.className='kana-btn'; if(r==='英字'||r==='数字'||r==='絵文字') d.style.gridColumn='span 2'; d.textContent=r; d.onclick=()=>show(r); g.appendChild(d); }); };
+function openApp(id, name, color) { curApp=id; curAccent=color; document.getElementById('top-screen').style.display='none'; document.getElementById('app-wrapper').style.display='flex'; document.getElementById('app-title').textContent=name; document.getElementById('menu-btn').style.color=color; document.getElementById('menu-btn').style.borderColor=color; toggleSidebar(); }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('is-hidden'); }
 function show(r) { document.getElementById('row-title').style.display='block'; document.getElementById('row-title').textContent='【'+r+'】'; const l = document.getElementById('list'); l.innerHTML=''; const ts = (data[curApp] && data[curApp][r]) ? data[curApp][r] : []; if(ts.length===0) l.innerHTML='用語がありません'; else ts.forEach(t=>{ const d=document.createElement('div'); d.className='term-item'; d.style.borderLeftColor=curAccent; d.textContent=t.term; d.onclick=()=>openM(t); l.appendChild(d); }); document.getElementById('sidebar').classList.add('is-hidden'); }
 function openM(t) { document.getElementById('m-t').textContent=t.term; document.getElementById('m-d').textContent=t.desc; const s = document.getElementById('m-e-s'); if(t.example){ document.getElementById('m-e').textContent='「'+t.example+'」'; s.style.display='block'; }else s.style.display='none'; document.getElementById('modal').style.display='flex'; }
 function closeM(e,f) { if(f || e.target.id==='modal') document.getElementById('modal').style.display='none'; }
-</script></body></html>
+<\/script></body></html>`;
+        const blob = new Blob([exportHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'index.html'; a.click();
+    }
+    window.onload = () => { loadData(); if (window.innerWidth <= 768) document.getElementById('sidebar-overlay').classList.add('show'); };
+</script>
+</body>
+</html>
